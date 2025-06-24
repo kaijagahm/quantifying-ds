@@ -1,0 +1,354 @@
+---
+title: "Quantifying DS Skills"
+author: "Temiloluwa & Nate"
+date: "2025"
+output: pdf_document
+---
+
+57-113
+
+```{r data, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+#Load packages
+library(dplyr)
+library(tidyverse)
+library(tidytext)
+library(ggplot2)
+library(stringr)
+library(reshape2)
+library(scales)
+library(lubridate)
+library(viridis)
+library(knitr)
+library(kableExtra)
+library(RColorBrewer)
+library(gplots)
+library(ggplot2)
+library(viridis)
+
+
+rstudioapi::writeRStudioPreference("data_viewer_max_columns", 300L)
+
+#load in data
+QuantDS_Data <- read.csv("Biology Curriculum Data Availability - course_descriptions.csv")
+#remove test rows
+QuantDS_Data <- QuantDS_Data[,-c(11,12,20,21)]
+
+#Explanation of variables
+#
+#Explain what all the variables mean, like institutions, major concentrations, etc
+
+#Create a unique identifier for each row in course_name so I can recall and identify them. 
+QuantDS_Data$Unique_ID <- 1:nrow(QuantDS_Data)
+
+
+#Calculating DS word prevalence
+#Calculating the data science word prevalence
+#Research textual analysis in R
+#A.K.A. NLP Natural Language Processing
+
+
+```
+
+**Prevalence of DS words**
+Comparison of terms
+Prevalence of DS instruction (Frequency of DS words/druples)
+
+```{r Prevalence across institutions, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+# Tokenize course_name for DS term analysis
+text_data <- QuantDS_Data %>%
+  select(course_name, Unique_ID) %>% 
+  unnest_tokens(word, course_name, token = "words")
+
+# Filter for DS terms in course_name
+filtered_data <- text_data %>%
+  filter(str_detect(word, paste0("^", ds_terms, collapse = "|")))
+
+# Summarize DS term counts in course_name by Unique_ID
+filtered_data2 <- as.data.frame(filtered_data)
+word_freq <- filtered_data2 %>%
+  count(Unique_ID, name = "word_count")
+
+# Tokenize text_description for DS term analysis
+desc_text_data <- QuantDS_Data %>%
+  select(text_description, Unique_ID) %>%
+  unnest_tokens(word, text_description, token = "words")
+
+# Filter for DS terms in text_description
+filtered_desc_data <- desc_text_data %>%
+  filter(str_detect(word, paste0("^", ds_terms, collapse = "|")))
+
+# Summarize DS term counts in text_description by Unique_ID
+filtered_desc_data2 <- as.data.frame(filtered_desc_data)
+desc_word_freq <- filtered_desc_data2 %>%
+  count(Unique_ID, name = "Description_word_count")
+
+# Count total words in text_description per course
+total_words_per_course <- desc_text_data %>%
+  group_by(Unique_ID) %>%
+  summarise(Total_Words = n())
+
+# Calculate DS term frequency per course (DS terms / total words)
+ds_word_freq_per_course <- total_words_per_course %>%
+  left_join(desc_word_freq, by = "Unique_ID") %>%
+  mutate(Description_word_count = replace(Description_word_count, is.na(Description_word_count), 0)) %>%
+  mutate(Ds_word_frequency_per_course = ifelse(Total_Words > 0, Description_word_count / Total_Words, 0)) %>%
+  select(Unique_ID, Ds_word_frequency_per_course)
+
+
+
+ #So the code goes through the course_name section, breaking down the names into individual characters, so I can then analyze them for the ones that have the terminologies I'm looking for in relation to Data Science
+text_data <- QuantDS_Data %>%
+  select(course_name, Unique_ID) %>% 
+  unnest_tokens(word, course_name, token = "words")
+head(text_data)
+
+ds_terms <- c("data","anal","graph","statistic","code","coding","model")
+
+#Filtered data gets the words found in the data "Course_name" that matches with the ds_terms identified above. So the result for example, prints the first six where we see like analysis
+filtered_data <- text_data %>%
+  filter(str_detect(word,paste0("^",ds_terms,collapse = "|")))
+head(filtered_data)
+
+#Analyze the filtered data, attaching a unique ID, plus a numerical value determined by the amount of words matched in the "ds_terms" entry list
+
+#Summarizing the filtered data by # of target words found in course name (CN)
+filtered_data2 <- as.data.frame(filtered_data)
+
+word_freq <- filtered_data2 %>%
+  count(Unique_ID, name="word_count")
+
+
+
+#Repeate analysis for course description
+#Separate each word in the descriptions to make it easier to search for the data science terms
+desc_text_data <- QuantDS_Data %>%
+  select(text_description, Unique_ID)%>%
+  unnest_tokens(word, text_description, token = "words")
+#Filter for words that starts with any of the ds_Term
+filtered_desc_data <- desc_text_data %>%
+  filter (str_detect(word, paste0("^", ds_terms, collapse = "|")))
+
+#convert the data frame and summarize it with Unique_ID
+desc_word_freq <-filtered_desc_data2 %>%
+  count(Unique_ID, name = "Description_word_count")
+#have it print it out in numbers, n ot it multiple words and by it I mean the amount of data science terms found in each UNique ID
+desc_word_freq <- desc_word_freq %>%
+  select(Unique_ID, Description_word_count)
+
+
+#Comparing ds terms based on the school's word description ratio
+
+#Counting total words per school
+total_words_per_school <- QuantDS_Data %>%
+  filter(!is.na(text_description) & text_description != "" & !is.na(Institution)) %>%
+  select(Institution, text_description) %>%
+  unnest_tokens(word, text_description, token = "words") %>%
+  group_by(Institution) %>%
+  summarise(Total_Words = n())
+
+#Count data science terms per school
+ds_terms_per_school <- QuantDS_Data %>%
+  filter(!is.na(text_description) & text_description != "" & !is.na(Institution)) %>%
+  select(Institution, text_description) %>%
+  unnest_tokens(word, text_description, token = "words") %>%
+  filter(str_detect(word, paste0("^", ds_terms, collapse = "|"))) %>%
+  group_by(Institution) %>%
+  summarise(DS_Term_Count = n())
+
+#Comparing the data science terms per school to the total words in word_description per school
+
+ds_terms_per_school_description <- total_words_per_school %>%
+  left_join(ds_terms_per_school, by = "Institution") %>%
+  mutate(DS_Term_Count = replace(DS_Term_Count, is.na(DS_Term_Count), 0)) %>%
+  select(Institution, Total_Words, DS_Term_Count)
+
+
+
+#Connecting desc_word_freq with Quant_DS 
+institution_ds_counts <- desc_word_freq %>%
+  #Joining the instituion list to the QuantDS so I can access the institution names
+  left_join(select(QuantDS_Data, Unique_ID, Institution), by = "Unique_ID") %>%
+  filter(!is.na(Institution)) %>%  # Remove any rows with missing Institution
+  #Grouping the total number of words by institution
+  group_by(Institution) %>%
+  #Summarising the final institutions
+  summarise(Total_DS_Terms = sum(Description_word_count, na.rm = TRUE)) %>%
+  arrange(desc(Total_DS_Terms))
+
+
+#Creating a bar plot
+ggplot(institution_ds_counts, aes(x = reorder(Institution, Total_DS_Terms), y = Total_DS_Terms)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Total Data Science Terms in Course Descriptions by Institution",
+       x = "Institution",
+       y = "Total Data Science Terms") 
+
+
+#Creating the plot for the data science words found in the institution_ds_counts data set
+ggplot(ds_terms_per_school_description, aes(x = Total_Words, y = DS_Term_Count)) +
+  geom_point(aes(color = Institution), size = 3) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +  # Add linear trend line with confidence interval
+  labs(title = "Total Words vs. Data Science Terms by Institution",
+       x = "Total Word Count",
+       y = "Data Science Term Count",
+       color = "Institution")
+
+# Summarize mean Ds_word_frequency_per_course by Institution and home_department
+institution_dept_summary <- QuantDS_Data %>%
+  filter(!is.na(Institution) & home_department %in% c("Internal", "External")) %>%
+  group_by(Institution, home_department) %>%
+  summarise(Mean_DS_Frequency = mean(Ds_word_frequency_per_course, na.rm = TRUE)) %>%
+  ungroup()
+
+# Create a bar graph to compare mean Ds_word_frequency_per_course across institutions and department types
+ggplot(institution_dept_summary, aes(x = Institution, y = Mean_DS_Frequency, fill = home_department)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("Internal" = "steelblue", "External" = "darkorange")) +
+  labs(title = "Mean Data Science Term Frequency in Course Descriptions by Institution",
+       subtitle = "Comparing Internal vs. External Departments",
+       x = "Institution",
+       y = "Mean DS Term Frequency (DS Terms / Total Words)",
+       fill = "Department Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+#geom_point (color = Institution attaches a unique color to each institution.)
+#Total word is on the bottom and shows the amount of total word counts by 2500
+#Data Science Term Count shows the chart that goes up by 50 with the trend being showed by schools
+#geom_smooth shows a blue line in the middle that shows a rising trend
+# Filter valid data for outsourcing analysis (non-NA department_name and Ds_word_frequency_per_course)
+valid_data <- QuantDS_Data %>%
+  filter(!is.na(department_name) & department_name != "" & !is.na(Ds_word_frequency_per_course))
+
+# Identify top 50% of courses based on Ds_word_frequency_per_course
+ds_threshold <- quantile(valid_data$Ds_word_frequency_per_course, probs = 0.5, na.rm = TRUE)
+high_ds_courses <- valid_data %>%
+  filter(Ds_word_frequency_per_course >= ds_threshold)
+
+# Classify departments as Biology or Non-Biology
+biology_keywords <- c("BIO", "Biology", "Biological Sciences", "Microbiology", "Biochemistry and Molecular Biology")
+high_ds_courses <- high_ds_courses %>%
+  mutate(Department_Type = ifelse(
+    str_detect(tolower(department_name), paste(tolower(biology_keywords), collapse = "|")),
+    "Biology",
+    "Non-Biology"
+  ))
+
+# Summarize proportion of high-DS courses by Institution and Department_Type
+dept_summary_by_institution <- high_ds_courses %>%
+  group_by(Institution, Department_Type) %>%
+  summarise(Course_Count = n(), .groups = "drop") %>%
+  group_by(Institution) %>%
+  mutate(Proportion = Course_Count / sum(Course_Count)) %>%
+  ungroup() %>%
+  mutate(Proportion = replace(Proportion, is.na(Proportion), 0))
+
+# Create a faceted bar plot to show proportion of high-DS courses by Department_Type per Institution
+ggplot(dept_summary_by_institution, aes(x = Institution, y = Proportion, fill = Department_Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = sprintf("%.0f%%", Proportion * 100)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5, 
+            size = 3) +  # Add percentage labels above bars
+  scale_fill_manual(values = c("Biology" = "forestgreen", "Non-Biology" = "darkorange")) +
+  labs(title = "Proportion of High Data Science Term Courses by Department Type",
+       subtitle = "Courses in Top 50% of Ds_word_frequency_per_course Per Institution",
+       x = "Institution",
+       y = "Proportion of Courses",
+       fill = "Department Type") +
+  scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +  # Ensure y-axis goes up to 100%
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),  # Rotate x-axis labels
+        plot.margin = unit(c(1, 1, 1, 1), "cm"),  # Increase plot margins
+        legend.position = "top")
+
+
+# Summarize mean Ds_word_frequency_per_course by lab_course
+inst_summary <- QuantDS_Data %>%
+  filter(!is.na(Institution)) %>%
+  group_by(Institution) %>%
+  summarise(Mean_DS_Frequency = mean(Ds_word_frequency_per_course, na.rm = TRUE),
+            .groups = "drop") %>%
+  arrange(Mean_DS_Frequency)
+
+# Create a line plot to compare DS term frequency across institutions
+ggplot(inst_summary, aes(x = reorder(Institution, Mean_DS_Frequency), y = Mean_DS_Frequency, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  labs(title = "Mean Data Science Term Frequency Across Institutions",
+       x = "Institution",
+       y = "Mean DS Term Frequency (DS Terms / Total Words)") +
+  scale_y_continuous(labels = percent_format(scale = 100), limits = c(0, max(inst_summary$Mean_DS_Frequency) * 1.2)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Infer course type from home_department
+QuantDS_Data <- QuantDS_Data %>%
+  mutate(Course_Type = case_when(
+    home_department == "Internal" ~ "Required",
+    home_department == "External" ~ "Elective",
+    TRUE ~ "Free elective"
+  )) %>%
+  filter(!is.na(Course_Type))
+
+# Summarize mean Ds_word_frequency_per_course by Course_Type
+course_type_summary <- QuantDS_Data %>%
+  filter(!is.na(Ds_word_frequency_per_course)) %>%
+  group_by(Course_Type) %>%
+  summarise(Mean_DS_Frequency = mean(Ds_word_frequency_per_course, na.rm = TRUE),
+            .groups = "drop") %>%
+  arrange(Mean_DS_Frequency)
+
+# Create a bar plot to compare mean DS term frequency by course type
+ggplot(course_type_summary, aes(x = Course_Type, y = Mean_DS_Frequency, fill = Course_Type)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Required" = "steelblue", "Elective" = "darkorange", "Free elective" = "forestgreen")) +
+  labs(title = "Mean Data Science Term Frequency by Course Type",
+       x = "Course Type",
+       y = "Mean DS Term Frequency (DS Terms / Total Words)") +
+  scale_y_continuous(labels = percent_format(scale = 100)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+``` 
+
+**Emphasis**
+Emphasis (Required, Restricted elective, Free elective)
+
+```{r Emphasis by course type, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+
+
+``` 
+
+**DS Home**
+Where (Internal, External instruction)
+
+```{r Emphasis by course type, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+
+
+``` 
+
+
+**Internal variability**
+Variability (Major program, Institution level variation)
+
+```{r Emphasis by course type, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+
+
+``` 
+
+
+**Institutional Characteristics**
+Institution characteristics (Size, Research emphasis)
+
+```{r Emphasis by course type, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+
+
+
+``` 

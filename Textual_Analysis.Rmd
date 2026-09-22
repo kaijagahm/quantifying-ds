@@ -29,7 +29,7 @@ library(viridis)
 rstudioapi::writeRStudioPreference("data_viewer_max_columns", 300L)
 
 #load in data
-QuantDS_Data <- read.csv("Biology Curriculum Data Availability - course_descriptions.csv")
+QuantDS_Data <- read.csv("data/raw/Biology Curriculum Data Availability - course_descriptions.csv")
 #remove test rows
 QuantDS_Data <- QuantDS_Data[,-c(11,12,20,21)]
 
@@ -39,7 +39,7 @@ QuantDS_Data <- QuantDS_Data[,-c(11,12,20,21)]
 
 #Create a unique identifier for each row in course_name so I can recall and identify them. 
 QuantDS_Data$Unique_ID <- 1:nrow(QuantDS_Data)
-
+glimpse(QuantDS_Data)
 
 #Calculating DS word prevalence
 #Calculating the data science word prevalence

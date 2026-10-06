@@ -1,0 +1,12 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+institution_data|stem|b9d86f9cf6c43398|68f792d2cca18d2e|2c530c1562a7fbd1|-1823526941||t20732.9490354285s|s5207b|5207|rds|local|vector|||0.956||
+course_data|stem|585379373105dbea|797fc741391e0a82|2c530c1562a7fbd1|-332148152||t20732.9490383719s|s457552b|457552|rds|local|vector|||0.096|One or more parsing issues, call `problems()` on your data frame for details, e.g.:   dat <- vroom(...)   problems(dat)|
+terms_temp|stem|17fd082422a31e29|39b74267046e3b90|2c530c1562a7fbd1|2118823548||t20732.9519304701s|s1767b|1767|rds|local|vector|||0.884||
+terms_vec|stem|bd6c2d43e96e9511|5b3721594c12e298|325198e63756236f|-1415293912||t20732.9521133939s|s486b|486|rds|local|vector|||0.021||
+crosswalk|object|8ddf1e86b3cc8b22
+get_terms_vector|function|7ac5bc82f0af0eff
+harmonize_inst|function|ca489a04055f99eb
+clean_institution_data|function|111c6a2b4826c092
+clean_course_data|function|ba20ef808966d1d6
+inst_cleaned|stem|791bf7698d515da1|26bab7fbd76906d1|885b157d15ae9976|-461159163||t20732.9703171029s|s1386b|1386|rds|local|vector|||0.065||
+courses_cleaned|stem|9c9cb0def200bd10|ad45861924a22729|4852a7e24529ef71|-585748168||t20732.9703214557s|s445140b|445140|rds|local|vector|||0.186|There was 1 warning in `mutate()`. ℹ In argument: `date_of_access = lubridate::mdy(date_of_access)`. Caused by warning: !  138 failed to parse.|

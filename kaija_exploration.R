@@ -1,6 +1,24 @@
 # Script for Kaija to play around with the data
 library(tidyverse)
 library(tidytext)
+institution_data <- read_csv("data/raw/institutions.csv")
+institution_data <- institution_data %>%
+  janitor::clean_names() %>%
+  janitor::remove_empty(c("rows", "cols")) %>%
+  rename("level" = "acreditation_level",
+         "region" = "accreditation_region") %>%
+  filter(include != "NO") %>%
+  select(institution, include, category, region, level) %>%
+  mutate(across(where(is.character), ~ str_squish(.)))
+table(institution_data$region, exclude = NULL)
+table(institution_data$category, exclude = NULL)
+table(institution_data$category, institution_data$region) # pretty nice even split! I'm sure we did that on purpose.
+
+unique(dat$institution) %in% institution_data$institution
+setdiff(dat$institution, institution_data$institution)
+
+sort(unique(dat$institution))
+sort(unique(institution_data$institution))
 
 dat <- read_csv("data/raw/Biology Curriculum Data Availability - course_descriptions_2026-09-22.csv")
 terms <- read_csv("data/raw/terms_list_temporary.csv")
@@ -100,6 +118,19 @@ summ_byinst %>%
   
 # H2. We expect that there are more data science terms in course descriptions for courses taught internally (within major department) than adjacent or external at smaller and Baccalaureate institutions (than at larger and Doctoral institutions)
 # M2a. Compare frequency of data science terms found within internal courses vs. external & adjacent courses at baccalaureate vs. MS/PhD institutions. T-test and boxplots?
+summ_bycourse %>%
+  filter(!is.na(institution), institution %in% insts) %>%
+  ggplot(aes(x = home_department, y = prop_terms))+
+  geom_boxplot(outlier.shape = NA, aes(fill = home_department))+
+  geom_jitter(alpha = 0.5, width = 0.1)+
+  facet_wrap(~institution, scales = "free_x")+
+  labs(y = "Prop terms included",
+       x = "Internal vs. external")+
+  ggtitle("Proportion of terms by internal/external department")+
+  theme(legend.position = "none") # no super obvious trends for this particular subset of institutions.
+
+# XXX need categories of institutions here
+
 # M2b. Compare frequency of data science terms found within internal courses vs. external & adjacent courses at smaller vs larger institutions (what size cut-offs to use?). T-test or ANOVA and boxplots?
 # M2c. Use term frequencies, course types, and institution characteristics in a PCA analysis (can include both continuous and categorical variables). Evaluate which variables are most loaded on PC1 and PC2, and variance explained, see if there is a pattern for how institutions/variables cluster in multivariate space.
 
